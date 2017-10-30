@@ -1,0 +1,32 @@
+{
+  "name": "weatherapi",
+  "version": "1.0.0",
+  "description": "Weather Api for testing",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/favri/weather-api-test.git"
+  },
+  "keywords": [
+    "weather"
+  ],
+  "author": "favric",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/favri/weather-api-test/issues"
+  },
+  "homepage": "https://github.com/favri/weather-api-test#readme",
+  "devDependencies": {
+    "nodemon": "^1.12.1"
+  },
+  "dependencies": {
+    "express": "^4.16.2",
+    "google-translate": "^2.0.5",
+    "https": "^1.0.0",
+    "mongoose": "^4.12.4"
+  }
+}
