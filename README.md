@@ -1,6 +1,8 @@
 # weather-api-test
 
-Run in localhost with: npm start
+cd to weatherApi folder
+
+Run in console with: npm start
 
 Localhost port: 3010 (can be modified server.js)
 

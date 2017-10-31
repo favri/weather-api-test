@@ -167,14 +167,12 @@ exports.update_hourly_tops = function (req, res) {
             })
 
             // if weather API response data hour is not in documents hour array, add new object to db
-            if (registeredHours.indexOf(dataHours) <= -1){
-              console.log('registeredHours',registeredHours);
-              console.log('dataHours',dataHours);
+            if (registeredHours.indexOf(dataHours) === -1){
               console.log('object to add');
               lastHoursCollection.insertOne(data);
               res.send({
                 status: 200,
-                Message: 'succesfully created',
+                Message: 'succesfully added',
                 data: data
               });
             }
@@ -186,15 +184,13 @@ exports.update_hourly_tops = function (req, res) {
                   modifyObj = doc;
                 }
               })
-              console.log('registeredHours',registeredHours);
-              console.log('dataHours',dataHours);
-              console.log('find an object to update');
-              console.log('modifyObj', modifyObj._id);
+              console.log('found an object to update');
               lastHoursCollection.replaceOne({"_id":modifyObj._id},data);
               res.send({
                 status: 200,
                 Message: 'succesfully updated document',
-                data: data });
+                data: data
+              });
             }
             // if (docs.length >= 24) {
             //   console.log('tengo que updetear en db')
