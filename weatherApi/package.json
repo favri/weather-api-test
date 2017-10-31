@@ -27,6 +27,6 @@
     "express": "^4.16.2",
     "google-translate": "^2.0.5",
     "https": "^1.0.0",
-    "mongoose": "^4.12.4"
+    "mongodb": "^2.2.33"
   }
 }

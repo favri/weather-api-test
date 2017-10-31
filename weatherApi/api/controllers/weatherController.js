@@ -8,7 +8,6 @@ const apixuToken = '409167ff741942d9a59201326170304';
 const q = '&q=';
 const city = 'Buenos+Aires';
 let weatherNow = {};
-let hourlyTops = {};
 
 exports.get_weather = function (req, res) {
   https.get(apixuUrl + apixuToken + q + city, (resp) => {
@@ -69,10 +68,10 @@ exports.get_tops = function (req, res) {
     }).then(function (docs) {
       let lastHoursArray = docs;
       let maxtemp = Math.max.apply(Math, lastHoursArray.map(function (obj) {
-        return obj.temperature
+        return obj.current.temp_c
       }))
       let mintemp = Math.min.apply(Math, lastHoursArray.map(function (obj) {
-        return obj.temperature
+        return obj.current.temp_c
       }))
       let tempsObj = {
         maxtemp: maxtemp,
@@ -83,6 +82,35 @@ exports.get_tops = function (req, res) {
     })
   };
   connectAndGet();
+};
+
+exports.get_all = function (req, res) {
+  let connectAndSend = function () {
+    return new Promise(function (resolve, reject) {
+      mongodb.MongoClient.connect(mongodbUri, function (err, db) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve(db);
+        }
+      })
+    }).then(function (db) {
+      return new Promise(function (resolve, reject) {
+        let lastHoursCollection = db.collection('hourly-tops');
+        lastHoursCollection.find().toArray(function (err, docs) {
+          if (err) {
+            reject(err);
+          }
+          else {
+            res.send(docs)
+            resolve(docs);
+          }
+        })
+
+      })
+    });
+  }
+  connectAndSend();
 };
 
 exports.update_hourly_tops = function (req, res) {
@@ -96,7 +124,7 @@ exports.update_hourly_tops = function (req, res) {
       // The whole response has been received. Check amount of results stored and update.
       resp.on('end', () => {
         let weatherObj = JSON.parse(data);
-        weatherSolved(weatherObj);
+        connectAndPost(weatherObj);
       });
       // Request failed
       resp.on("error", (err) => {
@@ -104,16 +132,13 @@ exports.update_hourly_tops = function (req, res) {
       });
     })
   };
-  const weatherSolved = function (data) {
-    connectAndPost(data);
-  };
   const connectAndPost = function (data) {
     return new Promise(function (resolve, reject) {
       mongodb.MongoClient.connect(mongodbUri, function (err, db) {
         if (err) {
           reject(err);
         } else {
-         resolve(db);
+          resolve(db);
         }
       })
     }).then(function (db) {
@@ -124,23 +149,107 @@ exports.update_hourly_tops = function (req, res) {
             reject(err);
           }
           else {
+            let registeredHours = [];
 
-            if (docs.length >= 24) {
-              console.log('tengo que updetear en db')
+            // Get data object Hour for comparison
+            let dataDate = new Date(0);
+            dataDate.setUTCSeconds(data.location.localtime_epoch);
+            let dataHours = dataDate.getHours();
+
+            // Loop over db documents and get hours to compare
+            docs.forEach(function (doc) {
+              let docDate = new Date(0);
+              docDate.setUTCSeconds(doc.location.localtime_epoch);
+              let docHours = docDate.getHours();
+              registeredHours.push(docHours);
+              // add dynamic property to object just for updating purpose
+              doc.location.uploadTime = docHours;
+            })
+
+            // if weather API response data hour is not in documents hour array, add new object to db
+            if (registeredHours.indexOf(dataHours) <= -1){
+              console.log('registeredHours',registeredHours);
+              console.log('dataHours',dataHours);
+              console.log('object to add');
+              lastHoursCollection.insertOne(data);
+              res.send({
+                status: 200,
+                Message: 'succesfully created',
+                data: data
+              });
             }
+            // Record founded for current hour then document must be updated
             else {
-              let localtime = data.location;
-              console.log('aún no tengo 24 valores');
-              console.log('localtime',localtime);
-              console.log('docs', docs);
+              let modifyObj = {};
+              docs.forEach(function (doc) {
+                if (doc.location.uploadTime = dataHours){
+                  modifyObj = doc;
+                }
+              })
+              console.log('registeredHours',registeredHours);
+              console.log('dataHours',dataHours);
+              console.log('find an object to update');
+              console.log('modifyObj', modifyObj._id);
+              lastHoursCollection.replaceOne({"_id":modifyObj._id},data);
+              res.send({
+                status: 200,
+                Message: 'succesfully updated document',
+                data: data });
             }
-            resolve(db, docs);
+            // if (docs.length >= 24) {
+            //   console.log('tengo que updetear en db')
+            //
+            //   // Get data object Hour for comparison
+            //   let dataDate = new Date(0);
+            //   dataDate.setUTCSeconds(data.location.localtime_epoch);
+            //   let dataHours = dataDate.getHours();
+            //
+            //   // Set a new date to 0 for db time comparison
+            //   let docDate = new Date(0);
+            //
+            //   docs.forEach(function (doc) {
+            //     docDate.setUTCSeconds(doc.location.localtime_epoch);
+            //     let docHours = docDate.getHours();
+            //
+            //     if (dataHours === docHours) {
+            //       console.log('hours match y update');
+            //     }
+            //     else {
+            //       console.log('no hours match');
+            //     }
+            //   })
+            // }
+            // else {
+            //   console.log('no tengo 24 valores aun');
+            //   let dataToPush = [];
+            //   // Get data object Hour for comparison
+            //   let dataDate = new Date(0);
+            //   dataDate.setUTCSeconds(data.location.localtime_epoch);
+            //   let dataHours = dataDate.getHours();
+            //
+            //   docs.forEach(function (doc) {
+            //     // Set a new date to 0 for db time comparison and fix epoch vs gmt diference
+            //     let docDate = new Date(0);
+            //     docDate.setUTCSeconds(doc.location.localtime_epoch);
+            //     let docHours = docDate.getHours() + gmtFix;
+            //
+            //     if (dataHours === docHours) {
+            //       console.log('find an object to update');
+            //     }
+            //     else {
+            //       console.log('no object to update');
+            //       if (dataToPush.indexOf(data) === -1){
+            //         dataToPush.push(data);
+            //       }
+            //     }
+            //   })
+            //   console.log('dataToPush',dataToPush);
+            // }
           }
         })
+        resolve(db);
       })
     })
   };
   getWeatherJson();
-
-
 };
