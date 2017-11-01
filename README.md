@@ -2,6 +2,7 @@
 
 cd to weatherApi folder
 
+Install packages with: npm install
 Run in console with: npm start
 
 Localhost port: 3010 (can be modified server.js)
